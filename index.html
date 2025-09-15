@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกผลสลากกินแบ่งรัฐบาล</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #28a745;
+            --primary-color-dark: #218838;
+            --background-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color-primary: #343a40;
+            --text-color-secondary: #6c757d;
+            --border-color: #e9ecef;
+            --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.15);
+            --font-family: 'Sarabun', sans-serif;
+            --border-radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color-primary);
+            line-height: 1.6;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .section {
+            background: var(--card-bg);
+            margin-bottom: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .section-header {
+            padding: 1rem 1.5rem;
+            background-color: rgba(0,0,0,0.02);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-color-primary);
+        }
+
+        .numbers {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            padding: 1.5rem;
+        }
+
+        .numbers input {
+            font-family: var(--font-family);
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 2px;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #fdfdff;
+            color: var(--text-color-secondary);
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .numbers input::placeholder {
+            color: #ccc;
+        }
+
+        .numbers input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.25);
+        }
+        
+        .submit-btn {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 2rem auto 0;
+            padding: 0.8rem 1.5rem;
+            font-family: var(--font-family);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+
+        .submit-btn:hover {
+            background-color: var(--primary-color-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .status-indicator {
+            text-align: center;
+            margin-top: 1rem;
+            font-style: italic;
+            color: var(--text-color-secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🏆 บันทึกผลสลากกินแบ่งรัฐบาล</h1>
+        
+        <div class="section" style="padding: 1.5rem; text-align: center;">
+            <h2 style="margin-bottom: 1rem;">เลือกงวดวันที่</h2>
+            <input type="date" id="lotteryDateInput" style="font-size: 1.2rem; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px;">
+        </div>
+
+        <div id="lottery-form"></div>
+        <div id="status" class="status-indicator"></div>
+    </div>
+
+    <script>
+        const FIREBASE_ROOT_URL = "https://lotterychecker-4bc13-default-rtdb.asia-southeast1.firebasedatabase.app/";
+
+        const prizes = [
+            { id: "prizeFirst", name: "รางวัลที่ 1", reward: "6000000", amount: 1, length: 6 },
+            { id: "prizeFirstNear", name: "รางวัลข้างเคียงรางวัลที่ 1", reward: "100000", amount: 2, length: 6 },
+            { id: "prizeSecond", name: "รางวัลที่ 2", reward: "200000", amount: 5, length: 6 },
+            { id: "prizeThird", name: "รางวัลที่ 3", reward: "80000", amount: 10, length: 6 },
+            { id: "prizeForth", name: "รางวัลที่ 4", reward: "40000", amount: 50, length: 6 },
+            { id: "prizeFifth", name: "รางวัลที่ 5", reward: "20000", amount: 100, length: 6 },
+        ];
+
+        const runningNumbers = [
+            { id: "runningNumberFrontThree", name: "รางวัลเลขหน้า 3 ตัว", reward: "4000", amount: 2, length: 3 },
+            { id: "runningNumberBackThree", name: "รางวัลเลขท้าย 3 ตัว", reward: "4000", amount: 2, length: 3 },
+            { id: "runningNumberBackTwo", name: "รางวัลเลขท้าย 2 ตัว", reward: "2000", amount: 1, length: 2 },
+        ];
+
+        const formContainer = document.getElementById("lottery-form");
+        const dateInput = document.getElementById('lotteryDateInput');
+        const statusIndicator = document.getElementById("status");
+        
+        function formatThaiDate(dateString) {
+            const date = new Date(dateString + 'T00:00:00');
+            return date.toLocaleDateString('th-TH', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                numberingSystem: 'latn'
+            });
+        }
+        
+        function clearFormInputs() {
+            document.querySelectorAll('#lottery-form input').forEach(input => {
+                input.value = "";
+            });
+        }
+
+        function createForm() {
+            const allPrizes = [...prizes, ...runningNumbers];
+            allPrizes.forEach(prize => {
+                const section = document.createElement("div");
+                section.className = "section";
+                section.dataset.id = prize.id;
+                
+                const header = document.createElement("div");
+                header.className = "section-header";
+                
+                const title = document.createElement("h2");
+                title.textContent = prize.name + (prize.amount > 1 ? ` (${prize.amount} รางวัล)` : "");
+                header.appendChild(title);
+                section.appendChild(header);
+
+                const numbersDiv = document.createElement("div");
+                numbersDiv.className = "numbers";
+
+                for (let i = 0; i < prize.amount; i++) {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.pattern = "[0-9]*";
+                    input.inputMode = "numeric";
+                    input.maxLength = prize.length;
+                    input.placeholder = "•".repeat(prize.length);
+                    numbersDiv.appendChild(input);
+                }
+
+                section.appendChild(numbersDiv);
+                formContainer.appendChild(section);
+            });
+            
+            const submitBtn = document.createElement('button');
+            submitBtn.textContent = 'บันทึกผลรางวัล';
+            submitBtn.className = 'submit-btn';
+            submitBtn.addEventListener('click', saveData);
+            formContainer.appendChild(submitBtn);
+
+            dateInput.addEventListener('change', handleDateChange);
+        }
+
+        async function handleDateChange() {
+            const selectedDate = dateInput.value;
+            if (!selectedDate) return;
+
+            const day = new Date(selectedDate).getDate();
+            if (day !== 1 && day !== 16) {
+                alert("ต้องเลือกวันที่ 1 หรือ 16 ของเดือนเท่านั้น");
+                dateInput.value = "";
+                return;
+            }
+
+            statusIndicator.textContent = "กำลังโหลดข้อมูล...";
+            await loadData(selectedDate);
+        }
+
+        async function loadData(selectedDate) {
+            clearFormInputs();
+
+            const [year, month, day] = selectedDate.split('-');
+            const thaiYear = parseInt(year) + 543;
+            const formattedDateFilename = `${day}${month}${thaiYear}`;
+            const dateEndpoint = `${FIREBASE_ROOT_URL}${formattedDateFilename}.json`;
+
+            try {
+                const response = await fetch(dateEndpoint);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        statusIndicator.textContent = "ไม่พบข้อมูลสำหรับงวดนี้ เริ่มบันทึกข้อมูลใหม่ได้เลย";
+                        return;
+                    }
+                    throw new Error(`Firebase returned an error: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data) {
+                    statusIndicator.textContent = "ไม่พบข้อมูลสำหรับงวดนี้ เริ่มบันทึกข้อมูลใหม่ได้เลย";
+                    return;
+                }
+
+                fillFormWithData(data.response);
+                statusIndicator.textContent = `โหลดข้อมูลสำเร็จสำหรับงวดวันที่ ${formatThaiDate(selectedDate)}`;
+            } catch (error) {
+                console.error('Error loading data from Firebase:', error);
+                statusIndicator.textContent = "Error: Could not load data.";
+            }
+        }
+
+        function fillFormWithData(responseData) {
+            const allPrizes = [...responseData.prizes, ...responseData.runningNumbers];
+            
+            allPrizes.forEach(prizeData => {
+                const section = document.querySelector(`[data-id="${prizeData.id}"]`);
+                if (section) {
+                    const inputs = section.querySelectorAll('input');
+                    prizeData.number.forEach((num, index) => {
+                        if (inputs[index]) {
+                            inputs[index].value = num.replace(/x/g, '');
+                        }
+                    });
+                }
+            });
+        }
+
+        async function saveData() {
+            const selectedDate = dateInput.value;
+            if (!selectedDate) {
+                alert('โปรดเลือกงวดวันที่ก่อนบันทึกข้อมูล');
+                return;
+            }
+
+            const allPrizes = [...prizes, ...runningNumbers];
+            for (const prize of allPrizes) {
+                const section = document.querySelector(`[data-id="${prize.id}"]`);
+                if (!section) continue;
+                
+                const inputs = section.querySelectorAll('input');
+                for (const input of inputs) {
+                    const value = input.value.trim();
+                    if (value !== "" && value.length !== prize.length) {
+                        alert(`กรุณากรอกตัวเลขให้ครบ ${prize.length} หลัก สำหรับ "${prize.name}"`);
+                        input.focus();
+                        return;
+                    }
+                }
+            }
+
+            statusIndicator.textContent = "กำลังบันทึกข้อมูล...";
+
+            const [year, month, dayStr] = selectedDate.split('-');
+            const thaiYear = parseInt(year) + 543;
+            const formattedDateFilename = `${dayStr}${month}${thaiYear}`;
+            const dateEndpoint = `${FIREBASE_ROOT_URL}${formattedDateFilename}.json`;
+
+            const getNumbersForPrize = (prize) => {
+                const section = document.querySelector(`[data-id="${prize.id}"]`);
+                if (!section) return [];
+                const inputs = section.querySelectorAll('input');
+                return Array.from(inputs).map(input => {
+                    const value = input.value.trim();
+                    return value === "" ? "x".repeat(prize.length) : value;
+                });
+            };
+
+            const finalJson = {
+                status: "success",
+                response: {
+                    date: formatThaiDate(selectedDate),
+                    endpoint: "Generated by Web Form",
+                    prizes: prizes.map(p => ({ ...p, number: getNumbersForPrize(p) })),
+                    runningNumbers: runningNumbers.map(p => ({ ...p, number: getNumbersForPrize(p) }))
+                }
+            };
+
+            try {
+                let response = await fetch(dateEndpoint, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalJson),
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Firebase returned an error: ${response.statusText}`);
+                }
+                
+                console.log(`Success! Data saved to Firebase at path: ${formattedDateFilename}.json`);
+                statusIndicator.textContent = `บันทึกข้อมูลสำเร็จสำหรับงวดวันที่ ${formatThaiDate(selectedDate)}`;
+            } catch (error) {
+                console.error('Error sending data to Firebase:', error);
+                statusIndicator.textContent = "Error: Could not save data.";
+                alert(`Failed to save data to Firebase. Check the console (F12) for details and ensure your database rules are set to allow writes.`);
+            }
+        }
+        
+        createForm();
+        statusIndicator.textContent = "พร้อมบันทึกผลสลากกินแบ่งฯ";
+    </script>
+</body>
+</html>
